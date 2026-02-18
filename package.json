@@ -1,0 +1,31 @@
+{
+  "name": "agentity",
+  "version": "1.0.0",
+  "description": "Agentity Identity Registry Backend",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "prod": "NODE_ENV=production node src/server.js",
+    "db:sync": "node src/config/sync.js",
+    "lint": "echo \"Add ESLint if needed\"",
+    "format": "echo \"Add Prettier if needed\"",
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "morgan": "^1.10.1",
+    "pg": "^8.18.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.7",
+    "uuid": "^13.0.0",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
