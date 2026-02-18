@@ -4,6 +4,8 @@ const Agent = require("../models/agent");
 const AgentMetadata = require("../models/agentMetadata");
 const AgentReputation = require("../models/agentReputation");
 const { generateFingerprint } = require("../services/fingerprint");
+const AgentBehaviorLog = require("../models/agentBehaviorLog");
+
 
 router.post("/register", async (req, res) => {
   try {
@@ -47,5 +49,50 @@ router.post("/register", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// Get Agent Profile
+router.get("/:id", async (req, res) => {
+  try {
+    const agent = await Agent.findByPk(req.params.id, {
+      include: ["AgentMetadata", "AgentReputation"]
+    });
+
+    if (!agent) {
+      return res.status(404).json({ message: "Agent not found" });
+    }
+
+    res.json(agent);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Verify Agent
+
+router.post("/:id/verify", async (req, res) => {
+  try {
+    const agent = await Agent.findByPk(req.params.id);
+
+    if (!agent) {
+      return res.status(404).json({ message: "Agent not found" });
+    }
+
+    agent.status = "verified";
+    await agent.save();
+
+    await AgentBehaviorLog.create({
+      agent_id: agent.id,
+      event_type: "verification",
+      event_payload: { verified_at: new Date() },
+      risk_score: 0.0
+    });
+
+    res.json({ message: "Agent verified", agent });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
 module.exports = router;
