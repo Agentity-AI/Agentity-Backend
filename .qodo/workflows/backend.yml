@@ -1,0 +1,32 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Lint (optional)
+        run: echo "Add lint step later"
+
+      - name: Build Sandbox Image
+        run: docker build -t agentity-sandbox ./src/sandbox
+
+      - name: Backend Build Success
+        run: echo "Backend pipeline passed"

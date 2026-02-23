@@ -4,6 +4,7 @@ require("dotenv").config();
 const logger = require("./config/logger");
 const sequelize = require("./config/database");
 const agentRoutes = require("./routes/agents");
+const simulationRoutes = require("./routes/simulation");
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/agents", agentRoutes);
+app.use("/simulation", simulationRoutes);
 
 // Monitoring endpoint
 app.get("/health", async (req, res) => {
