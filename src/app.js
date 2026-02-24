@@ -1,16 +1,35 @@
-const express = require("express");
 require("dotenv").config();
+
+const express = require("express");
+const cors = require("cors");
 
 const logger = require("./config/logger");
 const sequelize = require("./config/database");
+
 const agentRoutes = require("./routes/agents");
 const simulationRoutes = require("./routes/simulation");
 
 const app = express();
 
+/**
+ * =============================
+ * Global Middleware
+ * =============================
+ */
+
+// CORS
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+
+// Body parser
 app.use(express.json());
 
-// Request logging middleware with duration tracking
+// Request logging with duration tracking
 app.use((req, res, next) => {
   const start = Date.now();
 
@@ -28,14 +47,26 @@ app.use((req, res, next) => {
   next();
 });
 
+/**
+ * =============================
+ * Routes
+ * =============================
+ */
+
 app.use("/agents", agentRoutes);
 app.use("/simulation", simulationRoutes);
 
-// Monitoring endpoint
+/**
+ * =============================
+ * Health Check
+ * =============================
+ */
+
 app.get("/health", async (req, res) => {
   try {
     await sequelize.authenticate();
-    res.json({
+
+    res.status(200).json({
       status: "healthy",
       database: "connected",
       uptime: process.uptime(),
@@ -53,7 +84,22 @@ app.get("/health", async (req, res) => {
   }
 });
 
-// Centralized error handler
+/**
+ * =============================
+ * 404 Handler
+ * =============================
+ */
+
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+/**
+ * =============================
+ * Global Error Handler
+ * =============================
+ */
+
 app.use((err, req, res, next) => {
   logger.error({
     message: err.message,
