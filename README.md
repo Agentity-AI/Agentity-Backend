@@ -1,6 +1,3 @@
-# FULL UPDATED README (Copy & Paste)
-
-
 # Agentity Backend
 
 Secure AI Agent Identity, Simulation, and Blockchain Execution Orchestration Layer.
