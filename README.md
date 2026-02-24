@@ -1,81 +1,143 @@
-# 🚀 Agentity Backend
+# FULL UPDATED README (Copy & Paste)
 
-> Trust infrastructure for AI agents — identity registry, metadata storage, containerized simulation sandbox, and CI/CD automation.
 
-🌐 **Live Backend:**
-[https://agentity-backend.onrender.com](https://agentity-backend.onrender.com)
+# Agentity Backend
 
----
+Secure AI Agent Identity, Simulation, and Blockchain Execution Orchestration Layer.
 
-# 📌 Overview
 
-Agentity Backend provides the foundational trust layer for AI-driven blockchain interactions.
+## Overview
 
-This backend currently implements:
+Agentity is a backend infrastructure system designed to securely manage AI agents interacting with blockchain smart contracts.
 
-* ✅ AI Agent Identity Registry
-* ✅ Metadata Storage System
-* ✅ Reputation & Behavioral Logging
-* ✅ Agent Verification Workflow
-* ✅ Containerized Simulation Sandbox (Docker-based)
-* ✅ Backend Container Orchestration
-* ✅ CI/CD Pipelines (GitHub Actions)
-* ✅ Production Deployment on Render
+It provides:
 
-This system ensures AI agents are verified and behavior-tested before being allowed to execute on-chain actions.
+* Identity registry and fingerprinting
+* Metadata and behavioral storage
+* Risk simulation in isolated Docker sandboxes
+* Trust scoring and enforcement
+* Secure execution routing via Chainlink Runtime Environment (CRE)
+* Logging, monitoring, and analytics pipelines
 
----
+This backend ensures that AI agents are verified, tested, and approved before interacting with smart contracts.
 
-# 🏗 System Architecture
+
+# Architecture Overview
 
 ```
-Agent → Register → Identity Registry
-              ↓
-        Verification
-              ↓
-   Containerized Simulation Sandbox
-              ↓
-        Risk Score Logged
-              ↓
-   (Next Phase) Chainlink Runtime Execution
+Frontend
+   ↓
+Backend (Express API)
+   ↓
+Docker Simulation Sandbox
+   ↓
+Risk Scoring + Validation
+   ↓
+Chainlink Runtime Environment (CRE)
+   ↓
+Smart Contract Execution
 ```
 
----
 
-# 🛠 Tech Stack
+# Phase 1 — Identity Registry & Metadata
 
-| Layer            | Technology          |
-| ---------------- | ------------------- |
-| Runtime          | Node.js (CommonJS)  |
-| Framework        | Express.js          |
-| ORM              | Sequelize           |
-| Database         | PostgreSQL (Render) |
-| Logging          | Winston             |
-| Containerization | Docker              |
-| CI/CD            | GitHub Actions      |
-| Hosting          | Render              |
+### Implemented:
 
----
+* Agent registration endpoint
+* Unique fingerprint generation
+* Metadata storage (PostgreSQL + Sequelize)
+* Agent verification flag
+* Logging of registration events
 
-# 🌍 Production Deployment
+### Database:
 
-Base URL:
+PostgreSQL (Render / Docker / Local)
+
+### Key API:
 
 ```
-https://agentity-backend.onrender.com
+POST   /agents
+GET    /agents
+GET    /agents/:id
 ```
 
 ---
 
-# 🔎 Health Monitoring
+# Phase 2 — Simulation Sandbox (Docker)
 
-### GET `/health`
+Each agent is evaluated in an isolated container before execution.
 
-Checks server status and database connectivity.
+### What Happens:
 
-**Response**
+1. Agent behavior is simulated.
+2. Risk score is generated.
+3. Backend evaluates trust threshold.
+4. If risk ≥ 0.7 → execution denied.
+5. If risk < 0.7 → eligible for CRE execution.
 
-```json
+### Docker:
+
+Custom container image:
+
+```
+agentity-sandbox
+```
+
+Simulation triggered internally via Node backend.
+
+---
+
+# Phase 3 — CRE Integration (Chainlink Runtime)
+
+CRE acts as the secure execution mediator between backend and blockchain.
+
+### Current Status:
+
+* CRE CLI installed
+* TypeScript SDK integrated
+* Workflow created (`agent-execution`)
+* Local simulation successful
+* Deployment access requested
+
+### CRE Workflow Logic:
+
+* Accept execution payload
+* Validate risk score
+* Enforce defense-in-depth validation
+* Prepare smart contract call (next phase)
+
+### Backend Integration:
+
+Environment variables:
+
+```
+CRE_WEBHOOK_URL=...
+CRE_API_KEY=...
+```
+
+Fallback logic implemented if CRE deployment is pending.
+
+---
+
+# Logging & Monitoring
+
+Implemented:
+
+* Request logging with duration tracking
+* Structured logging via Winston
+* Health endpoint
+* Database connectivity monitoring
+* Error handling middleware
+
+### Health Check:
+
+```
+GET /health
+```
+
+Returns:
+
+```
 {
   "status": "healthy",
   "database": "connected",
@@ -83,120 +145,51 @@ Checks server status and database connectivity.
 }
 ```
 
-Used for monitoring and infrastructure validation.
-
 ---
 
-# 🔐 Identity Registry APIs
+# 🌐 API Routes (Frontend Integration Guide)
 
-Base URL:
+## Agents
+
+### Register Agent
 
 ```
-https://agentity-backend.onrender.com
+POST /agents
 ```
 
----
+Body:
 
-## 1️⃣ Register Agent
-
-**POST** `/agents/register`
-
-### Request Body
-
-```json
+```
 {
-  "agent_name": "Agent Alpha",
-  "public_key": "0x123abc...",
-  "model_name": "GPT-4",
-  "version": "1.0",
-  "execution_environment": "node"
+  "name": "Agent Alpha",
+  "owner": "0x123..."
 }
 ```
 
-### What Happens
+Response:
 
-* Agent fingerprint generated
-* Metadata stored
-* Reputation initialized
-* Status set to `pending`
-
-### Response
-
-```json
+```
 {
-  "id": "uuid",
-  "agent_name": "Agent Alpha",
-  "status": "pending"
+  "id": "...",
+  "fingerprint": "...",
+  "verified": true
 }
 ```
 
 ---
 
-## 2️⃣ Get Agent Profile
-
-**GET** `/agents/:id`
-
-Returns:
-
-* Agent information
-* Metadata
-* Reputation
-* Behavioral logs
-
----
-
-## 3️⃣ Verify Agent
-
-**POST** `/agents/:id/verify`
-
-Changes agent status to:
+## Simulate Agent
 
 ```
-verified
+POST /simulation/:id
 ```
 
-Also logs verification event in behavioral logs.
+Runs Docker sandbox simulation.
 
----
-
-# 🧪 Simulation Sandbox APIs
-
-Simulation uses isolated Docker container execution.
-
----
-
-## 4️⃣ Run Agent Simulation
-
-**POST** `/simulation/:id`
-
-### Requirement
-
-Agent must be:
+Response:
 
 ```
-status = verified
-```
-
-If not verified → request fails.
-
----
-
-### What Happens Internally
-
-1. Backend verifies agent status
-2. Docker container is launched
-3. Sandbox runner executes isolated logic
-4. Risk score is generated
-5. Behavioral log entry is created
-6. JSON response returned
-
----
-
-### Example Response
-
-```json
 {
-  "agentId": "uuid",
   "riskScore": 0.42,
   "status": "safe"
 }
@@ -204,230 +197,103 @@ If not verified → request fails.
 
 ---
 
-# 📊 Behavioral Logging
-
-All verification and simulation events are stored in:
+## Execute Agent
 
 ```
-AgentBehaviorLog
+POST /execute/:id
 ```
 
-Fields stored:
+Flow:
 
-* event_type
-* event_payload (JSON)
-* risk_score
-* timestamps
+1. Verify agent
+2. Run simulation
+3. Enforce risk threshold
+4. Send to CRE (if deployed)
+5. Return execution status
 
-This enables:
-
-* Reputation tracking
-* Risk analytics
-* Future ML scoring
-* Audit compliance
-
----
-
-# 🐳 Sandbox Architecture
-
-Sandbox is a Docker image:
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /sandbox
-COPY sandbox-runner.js .
-ENTRYPOINT ["node", "sandbox-runner.js"]
-CMD []
-```
-
-The sandbox:
-
-* Runs in isolation
-* Accepts agent ID
-* Produces risk output JSON
-* Exits automatically
-* Is destroyed after execution
-
----
-
-# ⚙️ Local Development Setup
-
-### 1️⃣ Install Dependencies
+Response:
 
 ```
-npm install
+{
+  "status": "executed",
+  "agentId": "...",
+  "executedAt": "..."
+}
 ```
 
 ---
 
-### 2️⃣ Start PostgreSQL (Docker)
+# 🐳 Docker Setup
 
-```
-docker compose up -d
-```
-
----
-
-### 3️⃣ Build Sandbox Image
+Build sandbox:
 
 ```
 docker build -t agentity-sandbox ./src/sandbox
 ```
 
----
-
-### 4️⃣ Start Backend
+Run manually:
 
 ```
-npm run dev
+docker run --rm agentity-sandbox
 ```
 
 ---
 
-# 🌐 Environment Variables
+# 🗄 Environment Variables
 
-## Local Development
-
-```
-DB_HOST=localhost
-DB_USER=postgres
-DB_PASS=postgres
-DB_NAME=agentity
-DB_PORT=5433
-NODE_ENV=development
-```
-
----
-
-## Production (Render)
+Backend:
 
 ```
-DATABASE_URL=postgresql://<user>:<pass>@<host>:5432/<db>
-NODE_ENV=production
-```
+PORT=5000
+DB_HOST=...
+DB_USER=...
+DB_PASS=...
+DB_NAME=...
+DB_PORT=5432
 
-SSL is automatically enabled in production mode.
-
----
-
-# 🔄 CI/CD Pipelines
-
-GitHub Actions configured for:
-
-### Backend CI
-
-* Install dependencies
-* Build sandbox Docker image
-* Validate project build
-
-Triggered on:
-
-```
-push to main
-pull requests
+CRE_WEBHOOK_URL=...
+CRE_API_KEY=...
 ```
 
 ---
 
-### Smart Contract CI (If Using Hardhat)
+# 🚀 Deployment
 
-* Install dependencies
-* Run contract tests
+Backend: Render
+Database: Render Postgres
+Sandbox: Docker
+CRE: Chainlink Runtime (deployment pending org access)
 
-Ensures contract integrity before deployment.
 
----
 
-# 🧠 Security Model
+# Security Design Principles
 
-Simulation execution only allowed if:
-
-```
-agent.status === "verified"
-```
-
-This prevents:
-
-* Untrusted agent execution
-* Malicious sandbox attempts
-* Unauthorized behavior testing
+* Defense-in-depth validation (Backend + CRE)
+* Isolated execution environment (Docker)
+* Risk threshold enforcement
+* Structured logging
+* Fail-safe execution fallback
 
 ---
 
-# 📂 Project Structure
-
-```
-src/
- ├── config/
- ├── models/
- ├── routes/
- │    ├── agents.js
- │    ├── simulation.js
- ├── services/
- │    ├── sandbox/
- │    │    ├── dockerRunner.js
- │    │    ├── sandboxService.js
- ├── sandbox/
- │    ├── Dockerfile
- │    ├── sandbox-runner.js
- ├── app.js
- ├── server.js
-```
-
----
-
-# 🎯 Backend Responsibilities Completed
+# Current System Status
 
 ✔ Identity Registry
 ✔ Metadata Storage
-✔ Verification Engine
-✔ Behavioral Logging
-✔ Container Orchestration
-✔ Simulation Sandbox
-✔ CI/CD Automation
-✔ Production Deployment
+✔ Docker Simulation
+✔ Risk Enforcement
+✔ Logging & Monitoring
+✔ CRE Local Workflow Simulation
+⏳ CRE Deployment Pending
+⏳ Smart Contract Integration Pending
 
 ---
 
-# 🔮 Next Phase
+# 📌 Hackathon Readiness
 
-* Chainlink Runtime Environment (CRE) integration
-* Secure blockchain execution enforcement
-* Risk threshold validation before execution
-* Multi-chain expansion
+System is fully functional locally.
 
----
+CRE deployment access requested.
 
-# 👨‍💻 Frontend Integration Guide
-
-Frontend should:
-
-1. Register agent
-2. Display agent profile
-3. Show verification status
-4. Trigger simulation
-5. Display risk score
-6. Display behavior logs
-7. Monitor health endpoint
-
-All APIs are RESTful and return JSON.
-
----
-
-# 📌 Important Notes
-
-* Docker must be installed where simulation runs.
-* Render does NOT support Docker-in-Docker.
-* Sandbox currently runs locally.
-* Production sandbox will require separate container hosting.
-
----
-
-# 🏁 Project Status
-
-Backend trust infrastructure is fully operational.
-
-Frontend can now integrate identity and simulation APIs.
-
-Chainlink execution layer integration is next.
+Fallback execution ensures demo continuity.
 
