@@ -8,14 +8,11 @@ const sequelize = require("./config/database");
 
 const agentRoutes = require("./routes/agents");
 const simulationRoutes = require("./routes/simulation");
+const executionRoutes = require("./routes/execution");
 
 const app = express();
 
-/**
- * =============================
- * Global Middleware
- * =============================
- */
+// Global Middleware
 
 // CORS
 app.use(
@@ -47,20 +44,16 @@ app.use((req, res, next) => {
   next();
 });
 
-/**
- * =============================
- * Routes
- * =============================
- */
+
+ // Routes
+ 
 
 app.use("/agents", agentRoutes);
 app.use("/simulation", simulationRoutes);
+app.use("/execute", executionRoutes);
 
-/**
- * =============================
- * Health Check
- * =============================
- */
+
+//Health Check
 
 app.get("/health", async (req, res) => {
   try {
@@ -84,11 +77,8 @@ app.get("/health", async (req, res) => {
   }
 });
 
-/**
- * =============================
- * 404 Handler
- * =============================
- */
+
+// 404 Handler
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
