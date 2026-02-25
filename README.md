@@ -1,296 +1,495 @@
-# Agentity Backend
 
-Secure AI Agent Identity, Simulation, and Blockchain Execution Orchestration Layer.
+#  Agentity Backend - https://agentity-backend.onrender.com
 
+## AI Agent Trust, Simulation & Execution Orchestration Layer
 
-## Overview
-
-Agentity is a backend infrastructure system designed to securely manage AI agents interacting with blockchain smart contracts.
+Agentity is a backend trust infrastructure for AI agents interacting with blockchain systems.
 
 It provides:
 
-* Identity registry and fingerprinting
-* Metadata and behavioral storage
-* Risk simulation in isolated Docker sandboxes
-* Trust scoring and enforcement
-* Secure execution routing via Chainlink Runtime Environment (CRE)
-* Logging, monitoring, and analytics pipelines
+* Agent Identity Registry
+* Metadata & Reputation tracking
+* Verification lifecycle
+* Containerized Simulation Sandbox (Docker)
+* CRE-based Execution Routing (with fallback)
+* Supabase Auth integration
+* Supabase Postgres (single DB – Option B)
+* User ↔ Agent interaction tracking (non-ownership)
+* Dashboard analytics endpoints
+* Logging + monitoring + health checks
 
-This backend ensures that AI agents are verified, tested, and approved before interacting with smart contracts.
 
-
-# Architecture Overview
+# 🏗 System Architecture
 
 ```
-Frontend
-   ↓
-Backend (Express API)
-   ↓
+Frontend (Supabase Auth)
+        │
+        │  Authorization: Bearer <access_token>
+        ▼
+Express Backend (Agentity)
+        │
+        ▼
+Supabase Postgres (Single Source of Truth)
+        │
+        ├── Agents
+        ├── Metadata
+        ├── Reputation
+        ├── Behavior Logs
+        └── User-Agent Events (Audit Trail)
+        │
+        ▼
 Docker Simulation Sandbox
-   ↓
-Risk Scoring + Validation
-   ↓
+        │
+        ▼
 Chainlink Runtime Environment (CRE)
-   ↓
-Smart Contract Execution
+        │
+        ▼
+Smart Contracts (Blockchain Layer)
 ```
 
 
-# Phase 1 — Identity Registry & Metadata
+# 🎯 Core Philosophy
 
-### Implemented:
+Agents are **NOT owned by users**.
 
-* Agent registration endpoint
-* Unique fingerprint generation
-* Metadata storage (PostgreSQL + Sequelize)
-* Agent verification flag
-* Logging of registration events
+Instead:
 
-### Database:
+* Multiple users can interact with the same agent.
+* We track every user interaction (register, fetch, verify, simulate, execute).
+* This is stored in `user_agent_events`.
+* RLS ensures users only see their own interaction history.
 
-PostgreSQL (Render / Docker / Local)
+This design allows:
 
-### Key API:
+* Global agent registry
+* Independent user audit trails
+* Full traceability without ownership constraints
 
-```
-POST   /agents
-GET    /agents
-GET    /agents/:id
-```
 
----
+# 🧱 Tech Stack
 
-# Phase 2 — Simulation Sandbox (Docker)
+* Node.js (CommonJS)
+* Express
+* Sequelize
+* Supabase Postgres (DATABASE_URL)
+* Supabase Auth (JWT validation)
+* Docker (sandbox simulation)
+* Chainlink CRE (workflow execution)
+* Winston (logging)
 
-Each agent is evaluated in an isolated container before execution.
 
-### What Happens:
-
-1. Agent behavior is simulated.
-2. Risk score is generated.
-3. Backend evaluates trust threshold.
-4. If risk ≥ 0.7 → execution denied.
-5. If risk < 0.7 → eligible for CRE execution.
-
-### Docker:
-
-Custom container image:
+# 📁 Project Structure
 
 ```
-agentity-sandbox
+src/
+├── app.js
+├── server.js
+├── config/
+│   ├── database.js
+│   ├── logger.js
+│   └── supabase.js
+├── middleware/
+│   └── auth.js
+├── models/
+│   ├── agent.js
+│   ├── agentMetadata.js
+│   ├── agentReputation.js
+│   ├── agentBehaviorLog.js
+│   ├── userAgentEvent.js
+│   └── index.js (associations)
+├── routes/
+│   ├── agents.js
+│   ├── simulation.js
+│   ├── execution.js
+│   └── dashboard.js
+└── services/
+    ├── sandbox/
+    ├── cre/
+    └── audit/
 ```
 
-Simulation triggered internally via Node backend.
-
----
-
-# Phase 3 — CRE Integration (Chainlink Runtime)
-
-CRE acts as the secure execution mediator between backend and blockchain.
-
-### Current Status:
-
-* CRE CLI installed
-* TypeScript SDK integrated
-* Workflow created (`agent-execution`)
-* Local simulation successful
-* Deployment access requested
-
-### CRE Workflow Logic:
-
-* Accept execution payload
-* Validate risk score
-* Enforce defense-in-depth validation
-* Prepare smart contract call (next phase)
-
-### Backend Integration:
-
-Environment variables:
+CRE project:
 
 ```
-CRE_WEBHOOK_URL=...
-CRE_API_KEY=...
+agentity-cre/
+└── agent-execution/
+    ├── main.ts
+    ├── workflow.yml
+    └── configs...
 ```
 
-Fallback logic implemented if CRE deployment is pending.
 
----
+# 🗄 Database Design
 
-# Logging & Monitoring
+## Tables
 
-Implemented:
+### Agents
 
-* Request logging with duration tracking
-* Structured logging via Winston
-* Health endpoint
-* Database connectivity monitoring
-* Error handling middleware
+* id (UUID)
+* agent_name
+* public_key
+* fingerprint
+* status (pending, verified, suspended)
 
-### Health Check:
+### AgentMetadata
 
-```
-GET /health
-```
+* agent_id
+* model_name
+* version
+* execution_environment
 
-Returns:
+### AgentReputation
 
-```
-{
-  "status": "healthy",
-  "database": "connected",
-  "uptime": 123.45
-}
-```
+* agent_id
+* score
+* risk_level
 
----
+### AgentBehaviorLog
 
-# 🌐 API Routes (Frontend Integration Guide)
+* agent_id
+* event_type
+* event_payload
+* risk_score
 
-## Agents
+### UserAgentEvents
 
-### Register Agent
+* user_id
+* agent_id
+* action
+* payload
+* ip
+* user_agent
 
-```
-POST /agents
-```
 
-Body:
+# 🔐 Supabase RLS (Row Level Security)
 
-```
-{
-  "name": "Agent Alpha",
-  "owner": "0x123..."
-}
-```
+`user_agent_events` has RLS enabled.
 
-Response:
+Policies:
 
-```
-{
-  "id": "...",
-  "fingerprint": "...",
-  "verified": true
-}
-```
+* Users can only SELECT their own records.
+* Users can only INSERT records for themselves.
+* Updates/deletes disabled (audit immutability).
 
----
+This ensures:
 
-## Simulate Agent
+* Secure multi-user dashboard
+* Full traceability
+* No cross-user data leakage
 
-```
-POST /simulation/:id
-```
 
-Runs Docker sandbox simulation.
+# 🧪 How To Run Locally
 
-Response:
+### 1️⃣ Install dependencies
 
 ```
-{
-  "riskScore": 0.42,
-  "status": "safe"
-}
+npm install
 ```
 
----
-
-## Execute Agent
-
-```
-POST /execute/:id
-```
-
-Flow:
-
-1. Verify agent
-2. Run simulation
-3. Enforce risk threshold
-4. Send to CRE (if deployed)
-5. Return execution status
-
-Response:
-
-```
-{
-  "status": "executed",
-  "agentId": "...",
-  "executedAt": "..."
-}
-```
-
----
-
-# 🐳 Docker Setup
-
-Build sandbox:
+### 2️⃣ Build Docker Sandbox
 
 ```
 docker build -t agentity-sandbox ./src/sandbox
 ```
 
-Run manually:
+### 3️⃣ Start backend
 
 ```
-docker run --rm agentity-sandbox
+npm run dev
 ```
+
+
+# API Documentation
+
+Base URL (local):
+`http://localhost:5000`
+
+Base URL (prod):
+`https://agentity-backend.onrender.com`
 
 ---
 
-# 🗄 Environment Variables
+# Authentication
 
-Backend:
+Frontend logs in via Supabase Auth.
+
+Frontend must send:
 
 ```
-PORT=5000
-DB_HOST=...
-DB_USER=...
-DB_PASS=...
-DB_NAME=...
-DB_PORT=5432
-
-CRE_WEBHOOK_URL=...
-CRE_API_KEY=...
+Authorization: Bearer <access_token>
 ```
+
+Backend validates token and attaches `req.user`.
+
+If token is missing:
+
+* Request still works
+* User activity logging does not occur
 
 ---
 
-# 🚀 Deployment
+# Agent Endpoints
 
-Backend: Render
-Database: Render Postgres
-Sandbox: Docker
-CRE: Chainlink Runtime (deployment pending org access)
+## Register Agent
+
+POST `/agents/register`
+
+Body:
+
+```json
+{
+  "agent_name": "Agent Alpha",
+  "public_key": "0xabc...",
+  "model_name": "gpt-4",
+  "version": "1.0",
+  "execution_environment": "node"
+}
+```
+
+Logs `agent_register` if authenticated.
+
+---
+
+## Get Agent Profile
+
+GET `/agents/:id`
+
+Logs `agent_fetch` if authenticated.
+
+---
+
+## Verify Agent
+
+POST `/agents/:id/verify`
+
+Logs:
+
+* AgentBehaviorLog entry
+* `agent_verify` user event
+
+---
+
+# Simulation
+
+POST `/simulation/:id`
+
+* Runs Docker sandbox
+* Produces risk score
+* Logs `agent_simulate`
+
+Requires Docker.
 
 
+# ⚙ Execution
 
-# Security Design Principles
+POST `/execute/:id`
 
-* Defense-in-depth validation (Backend + CRE)
-* Isolated execution environment (Docker)
+Flow:
+
+1. Ensure agent is verified
+2. Run simulation
+3. Send payload to CRE webhook
+4. If webhook missing → fallback execution
+
+Logs `agent_execute`.
+
+
+# 📊 Dashboard API (Frontend Critical)
+
+GET `/dashboard/overview`
+
+Requires Bearer token.
+
+Returns:
+
+```
+{
+  user,
+  summary: {
+    totalActions,
+    totalSimulations,
+    totalExecutions,
+    totalVerifications
+  },
+  recentActivity,
+  lastAgents
+}
+```
+
+Frontend can build:
+
+* Activity feed
+* KPI cards
+* Agent interaction history
+* Execution charts
+
+
+# 🔗 Blockchain / Smart Contract Integration
+
+Backend sends to CRE:
+
+* agentId
+* fingerprint
+* simulation results
+
+Blockchain engineer should:
+
+* Provide contract ABI
+* Provide contract address
+* Define execution function
+* Optionally validate fingerprint on-chain
+
+CRE acts as:
+
+* Secure execution gate
+* Policy enforcement layer
+* Blockchain relay
+
+
+# 🧠 CRE Workflow (Current State)
+
+* Cron-based simulation workflow
 * Risk threshold enforcement
+* Local simulation works
+* Deployment requires early access approval
+
+No changes needed due to Supabase integration.
+
+Supabase affects:
+
+* Auth
+* Database
+* Dashboard
+* Audit logs
+
+CRE remains execution layer only.
+
+
+# 🧪 How To Test Supabase Integration
+
+### Test 1 — DB Connection
+
+```
+GET /health
+```
+
+Should show `"database": "connected"`.
+
+---
+
+### Test 2 — Auth
+
+Use Supabase login → get access token.
+
+Call:
+
+```
+GET /dashboard/overview
+Authorization: Bearer <token>
+```
+
+Should return user email + stats.
+
+---
+
+### Test 3 — Event Logging
+
+With token:
+
+* Register agent
+* Verify agent
+* Simulate agent
+
+Check Supabase → `user_agent_events` table.
+
+You should see rows with:
+
+* user_id
+* agent_id
+* action
+
+---
+
+# 🔍 Monitoring
+
+## Health Check
+
+GET `/health`
+
+Returns:
+
+* status
+* DB connectivity
+* uptime
+
+## Request Logging
+
+All requests logged with:
+
+* method
+* url
+* status
+* duration
+* userId (if authenticated)
+
+---
+
+# 📌 What Backend Has Achieved
+
+* Agent identity registry
+* Metadata + reputation storage
+* Verification lifecycle
+* Docker sandbox orchestration
+* CRE integration
+* Supabase Auth integration
+* Supabase Postgres migration (Option B)
+* User ↔ Agent audit tracking
+* Dashboard analytics endpoint
+* Health monitoring
 * Structured logging
-* Fail-safe execution fallback
+
+This is production-grade architecture.
 
 ---
 
-# Current System Status
+# 👥 Team Integration Guide
 
-✔ Identity Registry
-✔ Metadata Storage
-✔ Docker Simulation
-✔ Risk Enforcement
-✔ Logging & Monitoring
-✔ CRE Local Workflow Simulation
-⏳ CRE Deployment Pending
-⏳ Smart Contract Integration Pending
+## Frontend Developer
+
+You need to:
+
+* Use Supabase Auth for login
+* Store `access_token`
+* Send `Authorization: Bearer <token>`
+* Use:
+
+  * `/agents/*`
+  * `/simulation/:id`
+  * `/execute/:id`
+  * `/dashboard/overview`
 
 ---
 
-# 📌 Hackathon Readiness
+## Blockchain Engineer
 
-System is fully functional locally.
+You need to:
 
-CRE deployment access requested.
+* Provide ABI
+* Provide contract address
+* Define execution method
+* Connect CRE workflow to contract
+* Define event emission structure
 
-Fallback execution ensures demo continuity.
+
+# 🏁 Final Status
+
+Backend is:
+
+* Fully functional
+* Fully integrated with Supabase
+* Simulation-ready
+* CRE-ready
+* Dashboard-ready
+* Team-ready
+
 

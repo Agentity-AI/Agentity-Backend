@@ -2,6 +2,9 @@ const app = require("./app");
 const sequelize = require("./config/database");
 const logger = require("./config/logger");
 
+// Register model associations BEFORE syncing
+require("./models");
+
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {

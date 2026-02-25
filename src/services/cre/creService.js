@@ -1,10 +1,17 @@
 const axios = require("axios");
 const logger = require("../../config/logger");
 
-async function executeViaCRE(payload) {
+async function executeWithCRE(agent, simulationResult) {
+  const payload = {
+    agentId: agent.id,
+    fingerprint: agent.fingerprint,
+    simulation: simulationResult,
+  };
+
   try {
     if (!process.env.CRE_WEBHOOK_URL) {
       logger.warn("CRE not deployed. Using fallback execution.");
+
       return {
         status: "executed",
         fallback: true,
@@ -27,4 +34,4 @@ async function executeViaCRE(payload) {
   }
 }
 
-module.exports = executeViaCRE;
+module.exports = { executeWithCRE };
