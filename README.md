@@ -1,236 +1,189 @@
+# Agentity Backend
 
-#  Agentity Backend - https://agentity-backend.onrender.com
+Agentity is a backend orchestration + trust layer for AI agents interacting with blockchain smart contracts. It provides:
+- Agent identity registry + metadata + reputation
+- Agent verification lifecycle + behavior logging
+- Docker sandbox simulation that returns risk scores
+- Execution routing via Chainlink Runtime Environment (CRE) (fallback supported)
+- Supabase Auth (users) + Supabase Postgres (single database)
+- User ↔ Agent interaction tracking (NOT ownership) via audit events
+- Dashboard API for frontend integrations
+- Health monitoring + request logging
 
-## AI Agent Trust, Simulation & Execution Orchestration Layer
+---
 
-Agentity is a backend trust infrastructure for AI agents interacting with blockchain systems.
-
-It provides:
-
-* Agent Identity Registry
-* Metadata & Reputation tracking
-* Verification lifecycle
-* Containerized Simulation Sandbox (Docker)
-* CRE-based Execution Routing (with fallback)
-* Supabase Auth integration
-* Supabase Postgres (single DB – Option B)
-* User ↔ Agent interaction tracking (non-ownership)
-* Dashboard analytics endpoints
-* Logging + monitoring + health checks
+## Live URL
+- Backend (Render): https://agentity-backend.onrender.com
 
 
-# 🏗 System Architecture
 
-```
+## Architecture (High-Level)
+
 Frontend (Supabase Auth)
-        │
-        │  Authorization: Bearer <access_token>
-        ▼
-Express Backend (Agentity)
-        │
-        ▼
-Supabase Postgres (Single Source of Truth)
-        │
-        ├── Agents
-        ├── Metadata
-        ├── Reputation
-        ├── Behavior Logs
-        └── User-Agent Events (Audit Trail)
-        │
-        ▼
+  └── sends Authorization: Bearer <access_token>
+        ↓
+Backend (Express + Sequelize)
+        ↓
+Supabase Postgres (single DB)
+  - Agents + Metadata + Reputation + Behavior Logs
+  - user_agent_events (audit trail)
+        ↓
 Docker Simulation Sandbox
-        │
-        ▼
-Chainlink Runtime Environment (CRE)
-        │
-        ▼
-Smart Contracts (Blockchain Layer)
-```
+        ↓
+CRE Webhook (if available) → Smart Contracts
+(fallback execution if CRE deploy is not available)
 
 
-# 🎯 Core Philosophy
+## Key Design Decision: Agents are NOT Owned by Users
 
-Agents are **NOT owned by users**.
+A user can:
+- register agents
+- fetch agents
+- verify agents
+- simulate agents
+- execute agents
 
-Instead:
-
-* Multiple users can interact with the same agent.
-* We track every user interaction (register, fetch, verify, simulate, execute).
-* This is stored in `user_agent_events`.
-* RLS ensures users only see their own interaction history.
-
-This design allows:
-
-* Global agent registry
-* Independent user audit trails
-* Full traceability without ownership constraints
+Multiple users can interact with the same agent.  
+We track user activity using `user_agent_events` (audit trail), not `agents.user_id`.
 
 
-# 🧱 Tech Stack
-
-* Node.js (CommonJS)
-* Express
-* Sequelize
-* Supabase Postgres (DATABASE_URL)
-* Supabase Auth (JWT validation)
-* Docker (sandbox simulation)
-* Chainlink CRE (workflow execution)
-* Winston (logging)
-
-
-# 📁 Project Structure
+## Project Structure
 
 ```
+
 src/
-├── app.js
-├── server.js
-├── config/
-│   ├── database.js
-│   ├── logger.js
-│   └── supabase.js
-├── middleware/
-│   └── auth.js
-├── models/
-│   ├── agent.js
-│   ├── agentMetadata.js
-│   ├── agentReputation.js
-│   ├── agentBehaviorLog.js
-│   ├── userAgentEvent.js
-│   └── index.js (associations)
-├── routes/
-│   ├── agents.js
-│   ├── simulation.js
-│   ├── execution.js
-│   └── dashboard.js
-└── services/
-    ├── sandbox/
-    ├── cre/
-    └── audit/
-```
-
-CRE project:
-
-```
+app.js
+server.js
+config/
+database.js
+logger.js
+supabase.js
+middleware/
+auth.js
+models/
+agent.js
+agentMetadata.js
+agentReputation.js
+agentBehaviourLog.js
+userAgentEvent.js
+index.js
+routes/
+agents.js
+simulation.js
+execution.js
+dashboard.js
+services/
+sandbox/
+cre/
+audit/
+db/
+schema.sql
 agentity-cre/
-└── agent-execution/
-    ├── main.ts
-    ├── workflow.yml
-    └── configs...
-```
+agent-execution/
+main.ts
+workflow.yml
+
+````
 
 
-# 🗄 Database Design
+## Environment Variables
 
-## Tables
+Create `.env` at the project root:
 
-### Agents
+```bash
+NODE_ENV=development
+PORT=5000
 
-* id (UUID)
-* agent_name
-* public_key
-* fingerprint
-* status (pending, verified, suspended)
+# Supabase Postgres (Option B)
+DATABASE_URL=postgresql://postgres.<project_ref>:<password>@aws-1-eu-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 
-### AgentMetadata
+# Supabase Auth
+SUPABASE_URL=https://<project_ref>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
 
-* agent_id
-* model_name
-* version
-* execution_environment
+# CRE (optional - fallback used if missing)
+CRE_WEBHOOK_URL=
+CRE_API_KEY=
+````
 
-### AgentReputation
+Important:
 
-* agent_id
-* score
-* risk_level
-
-### AgentBehaviorLog
-
-* agent_id
-* event_type
-* event_payload
-* risk_score
-
-### UserAgentEvents
-
-* user_id
-* agent_id
-* action
-* payload
-* ip
-* user_agent
+* Do NOT put `sslmode=require` in DATABASE_URL (your setup works without it).
+* SSL is handled in `src/config/database.js`.
 
 
-# 🔐 Supabase RLS (Row Level Security)
+## Install & Run (Local)
 
-`user_agent_events` has RLS enabled.
-
-Policies:
-
-* Users can only SELECT their own records.
-* Users can only INSERT records for themselves.
-* Updates/deletes disabled (audit immutability).
-
-This ensures:
-
-* Secure multi-user dashboard
-* Full traceability
-* No cross-user data leakage
-
-
-# 🧪 How To Run Locally
-
-### 1️⃣ Install dependencies
-
-```
+```bash
 npm install
-```
-
-### 2️⃣ Build Docker Sandbox
-
-```
-docker build -t agentity-sandbox ./src/sandbox
-```
-
-### 3️⃣ Start backend
-
-```
 npm run dev
 ```
 
 
-# API Documentation
+## Docker Sandbox
 
-Base URL (local):
-`http://localhost:5000`
+Build sandbox:
 
-Base URL (prod):
-`https://agentity-backend.onrender.com`
-
----
-
-# Authentication
-
-Frontend logs in via Supabase Auth.
-
-Frontend must send:
-
-```
-Authorization: Bearer <access_token>
+```bash
+npm run sandbox:build
 ```
 
-Backend validates token and attaches `req.user`.
+Run sandbox locally (manual):
 
-If token is missing:
+```bash
+npm run sandbox:run
+```
 
-* Request still works
-* User activity logging does not occur
+Note: Docker must be running.
 
----
 
-# Agent Endpoints
+## Database Schema (schema.sql)
 
-## Register Agent
+We provide a DB schema for teammates (especially blockchain/devops) at:
+
+`db/schema.sql`
+
+Apply to Supabase:
+
+* Supabase Dashboard → SQL Editor → paste `db/schema.sql` → Run
+
+Or via CLI:
+
+```bash
+npm run db:schema:apply
+```
+
+`schema.sql` includes:
+
+* tables for agents, metadata, reputation, behavior logs
+* `user_agent_events` table
+* RLS policies on `user_agent_events` so users only see their own audit history
+
+
+## API Reference (Frontend)
+
+Base URL:
+
+* Local: [http://localhost:5000](http://localhost:5000)
+* Prod: [https://agentity-backend.onrender.com](https://agentity-backend.onrender.com)
+
+### Auth Header
+
+Frontend should call APIs with:
+
+```
+Authorization: Bearer <supabase_access_token>
+```
+
+If no token is provided:
+
+* endpoints still work
+* audit logging won’t record a user_id (because user is anonymous)
+
+
+## Agents
+
+### Register Agent
 
 POST `/agents/register`
 
@@ -246,250 +199,125 @@ Body:
 }
 ```
 
-Logs `agent_register` if authenticated.
-
----
-
-## Get Agent Profile
+### Get Agent Profile
 
 GET `/agents/:id`
 
-Logs `agent_fetch` if authenticated.
-
----
-
-## Verify Agent
+### Verify Agent
 
 POST `/agents/:id/verify`
 
-Logs:
 
-* AgentBehaviorLog entry
-* `agent_verify` user event
+## Simulation
 
----
-
-# Simulation
+### Simulate Agent (Docker)
 
 POST `/simulation/:id`
 
-* Runs Docker sandbox
-* Produces risk score
-* Logs `agent_simulate`
+Returns:
 
-Requires Docker.
+* riskScore
+* status
 
 
-# ⚙ Execution
+## Execution
+
+### Execute Agent (Simulation → CRE)
 
 POST `/execute/:id`
 
 Flow:
 
-1. Ensure agent is verified
-2. Run simulation
-3. Send payload to CRE webhook
-4. If webhook missing → fallback execution
-
-Logs `agent_execute`.
+1. Agent must be verified
+2. Run simulation to generate riskScore
+3. If CRE_WEBHOOK_URL exists → send payload to CRE
+4. Else → fallback execution response
 
 
-# 📊 Dashboard API (Frontend Critical)
+## Dashboard (Frontend)
+
+### Dashboard Overview
 
 GET `/dashboard/overview`
-
-Requires Bearer token.
+Requires auth header.
 
 Returns:
 
-```
-{
-  user,
-  summary: {
-    totalActions,
-    totalSimulations,
-    totalExecutions,
-    totalVerifications
-  },
-  recentActivity,
-  lastAgents
-}
-```
-
-Frontend can build:
-
-* Activity feed
-* KPI cards
-* Agent interaction history
-* Execution charts
+* user (id/email)
+* summary counts
+* recent activity (from user_agent_events)
+* last agents interacted with
 
 
-# 🔗 Blockchain / Smart Contract Integration
 
-Backend sends to CRE:
+## Monitoring
 
-* agentId
-* fingerprint
-* simulation results
-
-Blockchain engineer should:
-
-* Provide contract ABI
-* Provide contract address
-* Define execution function
-* Optionally validate fingerprint on-chain
-
-CRE acts as:
-
-* Secure execution gate
-* Policy enforcement layer
-* Blockchain relay
-
-
-# 🧠 CRE Workflow (Current State)
-
-* Cron-based simulation workflow
-* Risk threshold enforcement
-* Local simulation works
-* Deployment requires early access approval
-
-No changes needed due to Supabase integration.
-
-Supabase affects:
-
-* Auth
-* Database
-* Dashboard
-* Audit logs
-
-CRE remains execution layer only.
-
-
-# 🧪 How To Test Supabase Integration
-
-### Test 1 — DB Connection
-
-```
-GET /health
-```
-
-Should show `"database": "connected"`.
-
----
-
-### Test 2 — Auth
-
-Use Supabase login → get access token.
-
-Call:
-
-```
-GET /dashboard/overview
-Authorization: Bearer <token>
-```
-
-Should return user email + stats.
-
----
-
-### Test 3 — Event Logging
-
-With token:
-
-* Register agent
-* Verify agent
-* Simulate agent
-
-Check Supabase → `user_agent_events` table.
-
-You should see rows with:
-
-* user_id
-* agent_id
-* action
-
----
-
-# 🔍 Monitoring
-
-## Health Check
+### Health Check
 
 GET `/health`
 
 Returns:
 
-* status
+* API status
 * DB connectivity
 * uptime
 
-## Request Logging
 
-All requests logged with:
+## CRE (Chainlink Runtime Environment)
 
-* method
-* url
-* status
-* duration
-* userId (if authenticated)
+CRE is the secure runtime execution layer between backend and smart contracts.
 
----
+Current status:
 
-# 📌 What Backend Has Achieved
+* Workflow compiles and simulates locally
+* Deployment access may be gated (early access)
+* Backend supports fallback execution if CRE deploy is not available
 
-* Agent identity registry
-* Metadata + reputation storage
-* Verification lifecycle
-* Docker sandbox orchestration
-* CRE integration
-* Supabase Auth integration
-* Supabase Postgres migration (Option B)
-* User ↔ Agent audit tracking
-* Dashboard analytics endpoint
-* Health monitoring
-* Structured logging
-
-This is production-grade architecture.
-
----
-
-# 👥 Team Integration Guide
-
-## Frontend Developer
-
-You need to:
-
-* Use Supabase Auth for login
-* Store `access_token`
-* Send `Authorization: Bearer <token>`
-* Use:
-
-  * `/agents/*`
-  * `/simulation/:id`
-  * `/execute/:id`
-  * `/dashboard/overview`
-
----
-
-## Blockchain Engineer
-
-You need to:
-
-* Provide ABI
-* Provide contract address
-* Define execution method
-* Connect CRE workflow to contract
-* Define event emission structure
+Supabase integration does NOT require changes to CRE workflow.
+CRE focuses on execution policy + smart contract calls.
 
 
-# 🏁 Final Status
+## How to Test Supabase Integration
 
-Backend is:
+1. DB connection:
 
-* Fully functional
-* Fully integrated with Supabase
-* Simulation-ready
-* CRE-ready
-* Dashboard-ready
-* Team-ready
+```bash
+curl http://localhost:5000/health
+```
+
+Expect: `"database": "connected"`
+
+2. Auth verification:
+
+* Login via Supabase Auth in frontend
+* Copy `access_token`
+* Call:
+
+```bash
+curl -H "Authorization: Bearer <TOKEN>" http://localhost:5000/dashboard/overview
+```
+
+Expect: user email + activity data.
+
+3. Audit logging:
+
+* With token, call `/agents/register`, `/agents/:id/verify`, `/simulation/:id`
+* Check Supabase table: `user_agent_events` should contain rows for your user.
 
 
+## Blockchain / Smart Contract Teammate Notes
+
+Backend will provide (via CRE payload):
+
+* agentId
+* fingerprint
+* simulation result (riskScore, status)
+
+Blockchain tasks:
+
+* define smart contract methods that CRE will call
+* provide ABI + contract address
+* define event emissions for execution logs
+* optionally validate fingerprint on-chain
+
+````
