@@ -1,4 +1,4 @@
-const { DataTypes } = require("sequelize");
+const { DataTypes, Op } = require("sequelize");
 const sequelize = require("../config/database");
 
 const Agent = sequelize.define("Agent", {
@@ -62,7 +62,7 @@ const Agent = sequelize.define("Agent", {
       fields: ["blockchain_agent_id"],
       unique: true,
       where: {
-        blockchain_agent_id: { [DataTypes.Op.ne]: null }
+        blockchain_agent_id: { [Op.ne]: null }
       }
     }
   ]

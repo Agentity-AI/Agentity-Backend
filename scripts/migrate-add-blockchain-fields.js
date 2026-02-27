@@ -2,8 +2,8 @@
 // Add blockchain integration fields to existing database
 
 require("dotenv").config();
-const sequelize = require("../config/database");
-const logger = require("../config/logger");
+const sequelize = require("../src/config/database");
+const logger = require("../src/config/logger");
 
 async function migrate() {
   try {
