@@ -72,34 +72,32 @@ Agentity is a backend system designed to:
 
 # 🔐 Authentication Flow
 
-Authentication is fully handled via **Supabase Auth**.
+## Auth (Supabase)
 
-Backend exposes:
+Agentity uses **Supabase Auth** for user registration and login.
+Backend returns the **Supabase access_token** as `jwt` (it is a JWT).
 
-## POST `/auth/register`
+### POST `/auth/register`
 
-Registers a new user.
+Creates a new user in Supabase Auth and returns `{ email, name, jwt, dashboard }`.
 
-### Request
+**Request**
 
 ```json
 {
   "email": "user@mail.com",
   "password": "Password123!",
   "name": "John Doe"
-}
-```
+}```
 
 ### Response
 
-```json
-{
+```{
   "email": "user@mail.com",
   "name": "John Doe",
-  "jwt": "SUPABASE_ACCESS_TOKEN",
-  "dashboard": { ...dashboardObject }
-}
-```
+  "jwt": "<supabase_access_token>",
+  "dashboard": { ... }
+}```
 
 
 ## POST `/auth/login`
@@ -119,8 +117,8 @@ Registers a new user.
 {
   "email": "user@mail.com",
   "name": "John Doe",
-  "jwt": "SUPABASE_ACCESS_TOKEN",
-  "dashboard": { ...dashboardObject }
+  "jwt": "<supabase_access_token>",
+  "dashboard": { ... }
 }
 ```
 
