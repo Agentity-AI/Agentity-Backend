@@ -1,3 +1,4 @@
+// src/services/dashboard/buildDashboard.js
 const { Op, fn, col } = require("sequelize");
 const UserAgentEvent = require("../../models/userAgentEvent");
 const Agent = require("../../models/agent");
@@ -22,9 +23,7 @@ function isVulnerability(payload) {
 
 function startOfDayUTC(d) {
   const x = new Date(d);
-  return new Date(
-    Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()),
-  );
+  return new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()));
 }
 
 function dateLabel(d) {
@@ -52,7 +51,7 @@ async function buildDashboard(user, options = {}) {
     "";
 
   const labels = lastNDaysLabels(7);
-  const since7d = new Date(labels[0] + "T00:00:00.000Z");
+  const since7d = new Date(`${labels[0]}T00:00:00.000Z`);
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const [
@@ -67,39 +66,46 @@ async function buildDashboard(user, options = {}) {
     UserAgentEvent.count({
       where: { user_id: userId, action: "agent_verify" },
     }),
+
     UserAgentEvent.count({
       where: {
         user_id: userId,
         action: "agent_simulate",
-        createdAt: { [Op.gte]: since24h },
+        created_at: { [Op.gte]: since24h },
       },
     }),
+
     UserAgentEvent.count({
       where: { user_id: userId, action: "agent_execute" },
     }),
+
     UserAgentEvent.findAll({
       where: { user_id: userId },
-      order: [["createdAt", "DESC"]],
+      order: [["created_at", "DESC"]],
       limit: 20,
     }),
+
     UserAgentEvent.findAll({
       where: { user_id: userId, agent_id: { [Op.ne]: null } },
       attributes: [[fn("DISTINCT", col("agent_id")), "agent_id"]],
     }),
+
     UserAgentEvent.findAll({
-      where: { user_id: userId, createdAt: { [Op.gte]: since7d } },
-      attributes: ["action", "payload", "createdAt"],
-      order: [["createdAt", "ASC"]],
+      where: { user_id: userId, created_at: { [Op.gte]: since7d } },
+      attributes: ["action", "payload", "created_at"],
+      order: [["created_at", "ASC"]],
     }),
+
     UserAgentEvent.findOne({
       where: { user_id: userId, agent_id: { [Op.ne]: null } },
-      order: [["createdAt", "DESC"]],
+      order: [["created_at", "DESC"]],
     }),
   ]);
 
   const agentIds = touchedAgentsDistinct
     .map((r) => r.get("agent_id"))
     .filter(Boolean);
+
   const totalAgent = agentIds.length;
 
   let activeAgent = null;
@@ -125,10 +131,11 @@ async function buildDashboard(user, options = {}) {
   let vulnerabilitiesDetected = 0;
 
   for (const ev of events7d) {
-    const idx = labels.indexOf(dateLabel(ev.createdAt));
+    const idx = labels.indexOf(dateLabel(ev.created_at));
     if (idx === -1) continue;
 
     if (ev.action === "agent_verify") verificationSeries[idx] += 1;
+
     if (ev.action === "agent_simulate") {
       const vuln = isVulnerability(ev.payload);
       if (vuln) {
@@ -157,7 +164,7 @@ async function buildDashboard(user, options = {}) {
       action: e.action,
       agent_id: e.agent_id,
       payload: e.payload,
-      createdAt: e.createdAt,
+      createdAt: e.created_at, // keep frontend contract
     })),
   };
 }

@@ -15,16 +15,23 @@ const UserAgentEvent = sequelize.define(
     payload: { type: DataTypes.JSONB, allowNull: true },
     ip: { type: DataTypes.STRING, allowNull: true },
     user_agent: { type: DataTypes.STRING, allowNull: true },
+
+    // DB column exists
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
   },
   {
     tableName: "user_agent_events",
-    timestamps: true,
+    timestamps: false, // IMPORTANT: prevents Sequelize from querying createdAt/updatedAt
     indexes: [
       { fields: ["user_id"] },
       { fields: ["agent_id"] },
       { fields: ["action"] },
+      { fields: ["created_at"] },
     ],
-  },
+  }
 );
 
 module.exports = UserAgentEvent;
